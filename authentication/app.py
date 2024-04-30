@@ -1,14 +1,20 @@
+import time
+
 from flask import Flask, request
 import psycopg2
 
 app = Flask(__name__)
 
+# Wait for database to be started
+time.sleep(5)
+
 # Database connection configuration
 DATABASE_HOST = "authentication-db"
 DATABASE_PORT = 5432
-DATABASE_NAME = "authentication_db"
-DATABASE_USER = "user"
-DATABASE_PASSWORD = "password"
+DATABASE_NAME = "authentication-db"
+DATABASE_USER = "postgres"
+DATABASE_PASSWORD = "postgres"
+
 
 def create_user_table():
     conn = psycopg2.connect(
@@ -21,13 +27,13 @@ def create_user_table():
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username VARCHAR(50) UNIQUE NOT NULL,
-            password VARCHAR(50) NOT NULL
+            username VARCHAR(255) PRIMARY KEY,
+            password VARCHAR(255) NOT NULL
         )
     """)
     conn.commit()
     conn.close()
+
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -48,11 +54,12 @@ def register():
     try:
         cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
         conn.commit()
-        return {"success": True}
-    except psycopg2.errors.UniqueViolation:
-        return {"success": False, "error": "Username already exists"}
-    finally:
         conn.close()
+        return {"success": True}, 200
+    except:
+        conn.close()
+        return {"success": False}, 400
+
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -69,15 +76,16 @@ def login():
     )
     cursor = conn.cursor()
 
-    # Check if username and password match
+    # Check if username and password combination exist
     cursor.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
     user = cursor.fetchone()
     conn.close()
 
     if user:
-        return {"success": True}
+        return {"success": True}, 200
     else:
-        return {"success": False, "error": "Invalid username or password"}
+        return {"success": False}, 400
+
 
 if __name__ == "__main__":
     create_user_table()
