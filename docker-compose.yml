@@ -1,7 +1,54 @@
 version: "3.9"
+
 services:
   gui:
     build: ./gui
     ports:
-      - 5000:5000
+      - "5000:5000"
 
+  authentication-db:
+    image: postgres:latest
+    env_file:
+      - .env
+    volumes:
+      - authentication_db_data:/var/lib/postgresql/data
+
+  authentication:
+    build: ./authentication
+    ports:
+      - "5001:5001"
+    depends_on:
+      - authentication-db
+
+  event-management-db:
+    image: postgres:latest
+    env_file:
+      - .env
+    volumes:
+      - event_management_db_data:/var/lib/postgresql/data
+
+  event-management:
+    build: ./event-management
+    ports:
+      - "5002:5002"
+    depends_on:
+      - event-management-db
+
+  calendar-db:
+    image: postgres:latest
+    env_file:
+      - .env
+    volumes:
+      - calendar_db_data:/var/lib/postgresql/data
+
+  calendar:
+    build: ./calendar
+    ports:
+      - "5003:5003"
+    depends_on:
+      - calendar-db
+
+volumes:
+  authentication_db_data:
+  event_management_db_data:
+  calendar_db_data:
