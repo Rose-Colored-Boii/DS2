@@ -3,6 +3,9 @@ import requests
 
 app = Flask(__name__)
 
+AUTH_SERVICE_URL = "http://ds2-authentication-1:5001"
+EVENT_SERVICE_URL = "http://ds2-event-management-1:5002"
+CALENDAR_SERVICE_URL = "http://ds2-calendar-1:5003"
 
 # The Username & Password of the currently logged-in User, this is used as a pseudo-cookie, as such this is not session-specific.
 username = None
@@ -36,10 +39,11 @@ def home():
         # Retrieve the list of all public events. The webpage expects a list of (title, date, organizer) tuples.
         # Try to keep in mind failure of the underlying microservice
         # =================================
-
-        public_events = [('Test event', 'Tomorrow', 'Benjamin')]  # TODO: call
-
-        return render_template('home.html', username=username, password=password, events = public_events)
+        public_events = []
+        events = requests.get(f"{EVENT_SERVICE_URL}/get_public_events").json()["events"]
+        for event in events:
+            public_events.append((event["title"], event["date"], event["organizer"]))
+        return render_template('home.html', username=username, password=password, events=public_events)
 
 
 @app.route("/event", methods=['POST'])
@@ -50,6 +54,9 @@ def create_event():
     #
     # Given some data, create an event and send out the invites.
     #==========================
+
+    requests.post(f"{EVENT_SERVICE_URL}/create_event", json={"title": title, "description": description, "date": date, "publicprivate": publicprivate, "organizer": username})
+    requests.post(f"{EVENT_SERVICE_URL}/invite", json={"title": title, "organizer": username, "invites": invites.split(';')})
 
     return redirect('/')
 
@@ -103,14 +110,24 @@ def view_event(eventid):
     # Try to keep in mind failure of the underlying microservice
     # =================================
 
-    success = True # TODO: this might change depending on whether you can see the event (public, or private but invited)
+    response = requests.get(f"{EVENT_SERVICE_URL}/get_events", json={"event_id": eventid}).json()
 
-    if success:
-        event = ['Test event', 'Tomorrow', 'Benjamin', 'Public', [['Benjamin', 'Participating'], ['Fabian', 'Maybe Participating']]]  # TODO: populate this with details from the actual event
-    else:
-        event = None  # No success, so don't fetch the data
+    event = [response["event"]["title"], response["event"]["date"], response["event"]["organizer"], response["event"]["privacy"], []]
 
-    return render_template('event.html', username=username, password=password, event=event, success = success)
+    success = False
+
+    if event[3] == "public" or event[2] == username:
+        success = True
+
+    for invite in response["invites"]:
+        if invite["username"] == username:
+            success = True
+        event[4].append([invite["username"], invite["status"]])
+
+    if not success:
+        event = None
+
+    return render_template('event.html', username=username, password=password, event=event, success=success)
 
 @app.route("/login", methods=['POST'])
 def login():
@@ -123,7 +140,9 @@ def login():
     # microservice returns True if correct combination, False if otherwise.
     # Also pay attention to the status code returned by the microservice.
     # ================================
-    success = True  # TODO: call
+    response = requests.post(f"{AUTH_SERVICE_URL}/login", json={"username": req_username, "password": req_password})
+
+    success = succesful_request(response)
 
     save_to_session('success', success)
     if success:
@@ -148,7 +167,10 @@ def register():
     # Registration is successful if a user with the same username doesn't exist yet.
     # ================================
 
-    success = True  # TODO: call
+    response = requests.post(f"{AUTH_SERVICE_URL}/register", json={"username": req_username, "password": req_password})
+
+    success = succesful_request(response)
+
     save_to_session('success', success)
 
     if success:
@@ -167,7 +189,10 @@ def invites():
     # retrieve a list with all events you are invited to and have not yet responded to
     #==============================
 
-    my_invites = [(1, 'Test event', 'Tomorrow', 'Benjamin', 'Private')] # TODO: process
+    inviteList = requests.get(f"{EVENT_SERVICE_URL}/get_invites", json={"username": username}).json()["invites"]
+    my_invites = []
+    for invite in inviteList:
+        my_invites.append((invite["id"], invite["title"], invite["date"], invite["organizer"], invite["privacy"]))
     return render_template('invites.html', username=username, password=password, invites=my_invites)
 
 @app.route('/invites', methods=['POST'])
@@ -180,7 +205,7 @@ def process_invite():
     # process an invite (accept, maybe, don't accept)
     #=======================
 
-    pass # TODO: send to microservice
+    requests.post(f"{EVENT_SERVICE_URL}/update_invites", json={"event_id": eventId, "status": status, "username": username})
 
     return redirect('/invites')
 

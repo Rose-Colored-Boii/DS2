@@ -1,8 +1,15 @@
+networks:
+  my_local_net:
+    name: my_local_net
+    driver: bridge
+
 services:
   gui:
     build: ./gui
     ports:
       - "5000:5000"
+    networks:
+      - my_local_net
 
   authentication-db:
     image: postgres:latest
@@ -12,6 +19,8 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - authentication_db_data:/var/lib/postgresql/data
+    networks:
+      - my_local_net
 
   authentication:
     build: ./authentication
@@ -19,6 +28,8 @@ services:
       - "5001:5001"
     depends_on:
       - authentication-db
+    networks:
+      - my_local_net
 
   event-management-db:
     image: postgres:latest
@@ -28,6 +39,8 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - event_management_db_data:/var/lib/postgresql/data
+    networks:
+      - my_local_net
 
   event-management:
     build: ./event-management
@@ -35,6 +48,8 @@ services:
       - "5002:5002"
     depends_on:
       - event-management-db
+    networks:
+      - my_local_net
 
   calendar-db:
     image: postgres:latest
@@ -44,6 +59,8 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - calendar_db_data:/var/lib/postgresql/data
+    networks:
+      - my_local_net
 
   calendar:
     build: ./calendar
@@ -51,6 +68,8 @@ services:
       - "5003:5003"
     depends_on:
       - calendar-db
+    networks:
+      - my_local_net
 
 volumes:
   authentication_db_data:
