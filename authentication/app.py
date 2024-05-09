@@ -50,8 +50,8 @@ def register():
         conn.commit()
         return jsonify({"message": "Registration successful"}), 200
     except:
+        conn.rollback()
         return jsonify({"message": "Username already exists"}), 400
-
 
 
 @app.route("/login", methods=["POST"])
@@ -65,6 +65,7 @@ def login():
     if user:
         return jsonify({"message": "Login succesful"}), 200
     else:
+        conn.rollback()
         return jsonify({"message": "Invalid username or password"}), 400
 
 

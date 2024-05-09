@@ -61,7 +61,20 @@ def create_event():
         cursor.execute("INSERT INTO events (title, date, organizer, privacy, description) VALUES (%s, %s, %s, %s, %s)", (title, date, organizer, publicprivate, description))
         return jsonify({"message": "Event created succesfully"}), 200
     except:
+        conn.rollback()
         return jsonify({"message": "Error occured during event creation"}), 400
+
+
+@app.route("/get_event_id", methods=["GET"])
+def get_event_id():
+    try:
+        organizer, title = request.json["organizer"], request.json["title"]
+        cursor.execute("SELECT * FROM events WHERE organizer = %s and title = %s", (organizer, title))
+        event = cursor.fetchone()
+        return jsonify({"event_id": event[0]}), 200
+    except:
+        conn.rollback()
+        return jsonify({"message": "Error occured fetching event_id"}), 400
 
 
 @app.route("/get_events", methods=["GET"])
@@ -77,7 +90,9 @@ def get_events():
             json["invites"].append({"username": invite[2], "status": invite[3]})
         return jsonify(json), 200
     except:
+        conn.rollback()
         return jsonify({"message": "Error occured fetching events"}), 400
+
 
 @app.route("/get_public_events", methods=["GET"])
 def get_public_events():
@@ -89,6 +104,7 @@ def get_public_events():
             json["events"].append({"title": event[1], "date": event[2], "organizer": event[3]})
         return jsonify(json), 200
     except:
+        conn.rollback()
         return jsonify({"message": "Error occured fetching public events"}), 400
 
 
@@ -102,6 +118,7 @@ def invite():
             cursor.execute("INSERT INTO invites (event_id, username, status) VALUES (%s, %s, 'TBD')", (event_id, username,))
         return jsonify({"message": "Invites sent out correctly"}), 200
     except:
+        conn.rollback()
         return jsonify({"message": "Error while sending out invites"}), 400
 
 
@@ -119,7 +136,9 @@ def get_invites():
             response["invites"].append({"id": event_id, "title": event[1], "date": event[2], "organizer": event[3], "privacy": event[4]})
         return jsonify(response), 200
     except:
+        conn.rollback()
         return jsonify({"message": "Error while fetching invites"}), 400
+
 
 @app.route("/update_invites", methods=["POST"])
 def update_invites():
@@ -128,7 +147,9 @@ def update_invites():
         cursor.execute("UPDATE invites SET status = %s WHERE username = %s AND event_id = %s", (status, username, event_id))
         return jsonify({"message": "Invites updated correctly"}), 200
     except:
+        conn.rollback()
         return jsonify({"message": "Error while updating invites"}), 400
+
 
 if __name__ == "__main__":
     create_event_table()

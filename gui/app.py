@@ -57,6 +57,8 @@ def create_event():
 
     requests.post(f"{EVENT_SERVICE_URL}/create_event", json={"title": title, "description": description, "date": date, "publicprivate": publicprivate, "organizer": username})
     requests.post(f"{EVENT_SERVICE_URL}/invite", json={"title": title, "organizer": username, "invites": invites.split(';')})
+    event_id = requests.get(f"{EVENT_SERVICE_URL}/get_event_id", json={"organizer": username, "title": title}).json()["event_id"]
+    requests.post(f"{CALENDAR_SERVICE_URL}/add_event", json={"username": username, "event_id": event_id})
 
     return redirect('/')
 
@@ -72,15 +74,30 @@ def calendar():
     # Try to keep in mind failure of the underlying microservice
     # =================================
 
-    success = True # TODO: this might change depending on if the calendar is shared with you
+    shared = True
+    if calendar_user != username:
+        response = requests.get(f"{CALENDAR_SERVICE_URL}/get_invitees", json={"calendar_user": calendar_user}).json()
+        invitees = response["invitees"]
+        if username not in invitees:
+            shared = False
 
-    if success:
-        calendar = [(1, 'Test event', 'Tomorrow', 'Benjamin', 'Going', 'Public')]  # TODO: call
+    if shared:
+        response = requests.get(f"{CALENDAR_SERVICE_URL}/get_calendar", json={"calendar_user": calendar_user}).json()
+        event_ids = response["event_ids"]
+        calendar = []
+        for event_id in event_ids:
+            response = requests.get(f"{EVENT_SERVICE_URL}/get_events", json={"event_id": event_id}).json()
+            status = ""
+            for invitee in response["invites"]:
+                if invitee["username"] == calendar_user:
+                    status = invitee["status"]
+            entry = (event_id, response["event"]["title"], response["event"]["date"], response["event"]["organizer"], status, response["event"]["privacy"])
+            calendar.append(entry)
     else:
         calendar = None
 
 
-    return render_template('calendar.html', username=username, password=password, calendar_user=calendar_user, calendar=calendar, success=success)
+    return render_template('calendar.html', username=username, password=password, calendar_user=calendar_user, calendar=calendar, success=shared)
 
 @app.route('/share', methods=['GET'])
 def share_page():
@@ -96,7 +113,8 @@ def share():
     # Share your calendar with a certain user. Return success = true / false depending on whether the sharing is succesful.
     #========================================
 
-    success = True  # TODO
+    response = requests.post(f"{CALENDAR_SERVICE_URL}/invite", json={"calendar_user": username, "invitee": share_user})
+    success = succesful_request(response)
     return render_template('share.html', username=username, password=password, success=success)
 
 
@@ -206,6 +224,8 @@ def process_invite():
     #=======================
 
     requests.post(f"{EVENT_SERVICE_URL}/update_invites", json={"event_id": eventId, "status": status, "username": username})
+    if status != "Don't Participate":
+        requests.post(f"{CALENDAR_SERVICE_URL}/add_event", json={"username": username, "event_id": eventId})
 
     return redirect('/invites')
 

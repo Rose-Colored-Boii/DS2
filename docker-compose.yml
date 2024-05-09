@@ -6,6 +6,7 @@ networks:
 services:
   gui:
     build: ./gui
+    restart: always
     ports:
       - "5000:5000"
     networks:
@@ -13,6 +14,7 @@ services:
 
   authentication-db:
     image: postgres:latest
+    restart: always
     environment:
       POSTGRES_DB: authentication-db
       POSTGRES_USER: postgres
@@ -24,6 +26,7 @@ services:
 
   authentication:
     build: ./authentication
+    restart: always
     ports:
       - "5001:5001"
     depends_on:
@@ -33,6 +36,7 @@ services:
 
   event-management-db:
     image: postgres:latest
+    restart: always
     environment:
       POSTGRES_DB: event-management-db
       POSTGRES_USER: postgres
@@ -44,6 +48,7 @@ services:
 
   event-management:
     build: ./event-management
+    restart: always
     ports:
       - "5002:5002"
     depends_on:
@@ -53,6 +58,7 @@ services:
 
   calendar-db:
     image: postgres:latest
+    restart: always
     environment:
       POSTGRES_DB: calendar-db
       POSTGRES_USER: postgres
@@ -64,6 +70,7 @@ services:
 
   calendar:
     build: ./calendar
+    restart: always
     ports:
       - "5003:5003"
     depends_on:
