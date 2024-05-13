@@ -54,22 +54,21 @@ def create_invites_table():
     conn.commit()
 
 
-@app.route("/create_event", methods=["POST"])
-def create_event():
+@app.route("/events/<username>/<title>", methods=["POST"])
+def create_event(username):
     try:
-        title, description, date, publicprivate, organizer = request.json['title'], request.json['description'], request.json['date'], request.json['publicprivate'], request.json['organizer']
-        cursor.execute("INSERT INTO events (title, date, organizer, privacy, description) VALUES (%s, %s, %s, %s, %s)", (title, date, organizer, publicprivate, description))
+        description, date, publicprivate = request.json['description'], request.json['date'], request.json['publicprivate']
+        cursor.execute("INSERT INTO events (title, date, organizer, privacy, description) VALUES (%s, %s, %s, %s, %s)", (title, date, username, publicprivate, description))
         return jsonify({"message": "Event created succesfully"}), 200
     except:
         conn.rollback()
         return jsonify({"message": "Error occured during event creation"}), 400
 
 
-@app.route("/get_event_id", methods=["GET"])
-def get_event_id():
+@app.route("/events/<username>/<title>", methods=["GET"])
+def get_event_id(username, title):
     try:
-        organizer, title = request.json["organizer"], request.json["title"]
-        cursor.execute("SELECT * FROM events WHERE organizer = %s and title = %s", (organizer, title))
+        cursor.execute("SELECT * FROM events WHERE organizer = %s and title = %s", (username, title))
         event = cursor.fetchone()
         return jsonify({"event_id": event[0]}), 200
     except:
@@ -77,10 +76,9 @@ def get_event_id():
         return jsonify({"message": "Error occured fetching event_id"}), 400
 
 
-@app.route("/get_events", methods=["GET"])
-def get_events():
+@app.route("/events/<event_id>", methods=["GET"])
+def get_events(event_id):
     try:
-        event_id = request.json["event_id"]
         cursor.execute("SELECT * FROM events WHERE id = %s", (event_id,))
         event = cursor.fetchone()
         cursor.execute("SELECT * FROM invites WHERE event_id = %s", (event_id,))
@@ -94,7 +92,7 @@ def get_events():
         return jsonify({"message": "Error occured fetching events"}), 400
 
 
-@app.route("/get_public_events", methods=["GET"])
+@app.route("/events", methods=["GET"])
 def get_public_events():
     try:
         cursor.execute("SELECT * FROM events WHERE privacy = 'public'")
@@ -108,24 +106,23 @@ def get_public_events():
         return jsonify({"message": "Error occured fetching public events"}), 400
 
 
-@app.route("/invite", methods=["POST"])
-def invite():
+@app.route("/events/<username>/<title>/invites", methods=["POST"])
+def invite(username, title):
     try:
-        names, organizer, title = request.json["invites"], request.json["organizer"], request.json["title"]
-        cursor.execute("SELECT * FROM events WHERE organizer = %s AND title = %s", (organizer, title))
+        names = request.json["invites"]
+        cursor.execute("SELECT * FROM events WHERE organizer = %s AND title = %s", (username, title))
         event_id = cursor.fetchone()[0]
-        for username in names:
-            cursor.execute("INSERT INTO invites (event_id, username, status) VALUES (%s, %s, 'TBD')", (event_id, username,))
+        for name in names:
+            cursor.execute("INSERT INTO invites (event_id, username, status) VALUES (%s, %s, 'TBD')", (event_id, name,))
         return jsonify({"message": "Invites sent out correctly"}), 200
     except:
         conn.rollback()
         return jsonify({"message": "Error while sending out invites"}), 400
 
 
-@app.route("/get_invites", methods=["GET"])
-def get_invites():
+@app.route("/events/<username>/invites", methods=["GET"])
+def get_invites(username):
     try:
-        username = request.json["username"]
         cursor.execute("SELECT * FROM invites WHERE username = %s AND status = 'TBD'", (username,))
         invites = cursor.fetchall()
         response = {"invites": []}
@@ -140,10 +137,10 @@ def get_invites():
         return jsonify({"message": "Error while fetching invites"}), 400
 
 
-@app.route("/update_invites", methods=["POST"])
-def update_invites():
+@app.route("/events/<username>/invites", methods=["PUT"])
+def update_invites(username):
     try:
-        username, event_id, status = request.json["username"], request.json["event_id"], request.json["status"]
+        event_id, status = request.json["event_id"], request.json["status"]
         cursor.execute("UPDATE invites SET status = %s WHERE username = %s AND event_id = %s", (status, username, event_id))
         return jsonify({"message": "Invites updated correctly"}), 200
     except:

@@ -51,10 +51,10 @@ def create_invites_table():
     conn.commit()
 
 
-@app.route("/invite", methods=["POST"])
-def invite():
+@app.route("/calendar/<username>/invites", methods=["POST"])
+def invite(username):
     try:
-        username, invitee = request.json["calendar_user"], request.json["invitee"]
+        invitee = request.json["invitee"]
         cursor.execute("INSERT INTO invites (username, invitee) VALUES (%s, %s)", (username, invitee))
         conn.commit()
         return jsonify({"message": "Succesfully sent invite"}), 200
@@ -63,10 +63,9 @@ def invite():
         return jsonify({"message": "Error occured sending invite"}), 400
 
 
-@app.route("/get_invitees", methods=["GET"])
-def get_invitees():
+@app.route("/calendar/<username>/invites", methods=["GET"])
+def get_invitees(username):
     try:
-        username = request.json["calendar_user"]
         cursor.execute("SELECT * FROM invites WHERE username = %s", (username, ))
         invites = cursor.fetchall()
         json = {"invitees": []}
@@ -78,10 +77,9 @@ def get_invitees():
         return jsonify({"message": "Error occured fetching invites"}), 400
 
 
-@app.route("/get_calendar", methods=["GET"])
-def get_calendar():
+@app.route("/calendar/<username>", methods=["GET"])
+def get_calendar(username):
     try:
-        username = request.json["calendar_user"]
         cursor.execute("SELECT * FROM calendars WHERE username = %s", (username, ))
         calendar = cursor.fetchall()
         json = {"event_ids": []}
@@ -93,10 +91,10 @@ def get_calendar():
         return jsonify({"message": "Error occured fetching calendar"}), 400
 
 
-@app.route("/add_event", methods=["POST"])
-def add_event():
+@app.route("/calendar/<username>", methods=["POST"])
+def add_event(username):
     try:
-        username, event_id = request.json["username"], request.json["event_id"]
+        event_id = request.json["event_id"]
         cursor.execute("INSERT INTO calendars (username, event_id) VALUES (%s, %s)", (username, event_id))
         conn.commit()
         return jsonify({"message": "Added event to calendar"}), 200

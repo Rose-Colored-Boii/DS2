@@ -3,9 +3,9 @@ import requests
 
 app = Flask(__name__)
 
-AUTH_SERVICE_URL = "http://ds2-authentication-1:5001"
-EVENT_SERVICE_URL = "http://ds2-event-management-1:5002"
-CALENDAR_SERVICE_URL = "http://ds2-calendar-1:5003"
+AUTH_SERVICE_URL = "http://ds2-authentication-1:5001/auth"
+EVENT_SERVICE_URL = "http://ds2-event-management-1:5002/events"
+CALENDAR_SERVICE_URL = "http://ds2-calendar-1:5003/calendar"
 
 # The Username & Password of the currently logged-in User, this is used as a pseudo-cookie, as such this is not session-specific.
 username = None
@@ -40,7 +40,7 @@ def home():
         # Try to keep in mind failure of the underlying microservice
         # =================================
         public_events = []
-        events = requests.get(f"{EVENT_SERVICE_URL}/get_public_events").json()["events"]
+        events = requests.get(f"{EVENT_SERVICE_URL}/events").json()["events"]
         for event in events:
             public_events.append((event["title"], event["date"], event["organizer"]))
         return render_template('home.html', username=username, password=password, events=public_events)
@@ -55,10 +55,10 @@ def create_event():
     # Given some data, create an event and send out the invites.
     #==========================
 
-    requests.post(f"{EVENT_SERVICE_URL}/create_event", json={"title": title, "description": description, "date": date, "publicprivate": publicprivate, "organizer": username})
-    requests.post(f"{EVENT_SERVICE_URL}/invite", json={"title": title, "organizer": username, "invites": invites.split(';')})
-    event_id = requests.get(f"{EVENT_SERVICE_URL}/get_event_id", json={"organizer": username, "title": title}).json()["event_id"]
-    requests.post(f"{CALENDAR_SERVICE_URL}/add_event", json={"username": username, "event_id": event_id})
+    requests.post(f"{EVENT_SERVICE_URL}/" + str(username) + "/" + str(title), json={"description": description, "date": date, "publicprivate": publicprivate})
+    requests.post(f"{EVENT_SERVICE_URL}/" + str(username) + "/" + str(title) + "/invites", json={"invites": invites.split(';')})
+    event_id = requests.get(f"{EVENT_SERVICE_URL}/" + str(username) + "/" + str(title)).json()["event_id"]
+    requests.post(f"{CALENDAR_SERVICE_URL}/" + str(username), json={"event_id": event_id})
 
     return redirect('/')
 
@@ -76,17 +76,17 @@ def calendar():
 
     shared = True
     if calendar_user != username:
-        response = requests.get(f"{CALENDAR_SERVICE_URL}/get_invitees", json={"calendar_user": calendar_user}).json()
+        response = requests.get(f"{CALENDAR_SERVICE_URL}/" + str(calendar_user) + "/invites").json()
         invitees = response["invitees"]
         if username not in invitees:
             shared = False
 
     if shared:
-        response = requests.get(f"{CALENDAR_SERVICE_URL}/get_calendar", json={"calendar_user": calendar_user}).json()
+        response = requests.get(f"{CALENDAR_SERVICE_URL}/" + str(calendar_user)).json()
         event_ids = response["event_ids"]
         calendar = []
         for event_id in event_ids:
-            response = requests.get(f"{EVENT_SERVICE_URL}/get_events", json={"event_id": event_id}).json()
+            response = requests.get(f"{EVENT_SERVICE_URL}/" + str(event_id)).json()
             status = ""
             for invitee in response["invites"]:
                 if invitee["username"] == calendar_user:
@@ -113,7 +113,7 @@ def share():
     # Share your calendar with a certain user. Return success = true / false depending on whether the sharing is succesful.
     #========================================
 
-    response = requests.post(f"{CALENDAR_SERVICE_URL}/invite", json={"calendar_user": username, "invitee": share_user})
+    response = requests.post(f"{CALENDAR_SERVICE_URL}/" + str(username) + "/invites", json={"invitee": share_user})
     success = succesful_request(response)
     return render_template('share.html', username=username, password=password, success=success)
 
@@ -128,7 +128,7 @@ def view_event(eventid):
     # Try to keep in mind failure of the underlying microservice
     # =================================
 
-    response = requests.get(f"{EVENT_SERVICE_URL}/get_events", json={"event_id": eventid}).json()
+    response = requests.get(f"{EVENT_SERVICE_URL}/" + str(eventid)).json()
 
     event = [response["event"]["title"], response["event"]["date"], response["event"]["organizer"], response["event"]["privacy"], []]
 
@@ -207,7 +207,7 @@ def invites():
     # retrieve a list with all events you are invited to and have not yet responded to
     #==============================
 
-    inviteList = requests.get(f"{EVENT_SERVICE_URL}/get_invites", json={"username": username}).json()["invites"]
+    inviteList = requests.get(f"{EVENT_SERVICE_URL}/" + str(username) + "/invites").json()["invites"]
     my_invites = []
     for invite in inviteList:
         my_invites.append((invite["id"], invite["title"], invite["date"], invite["organizer"], invite["privacy"]))
@@ -223,7 +223,7 @@ def process_invite():
     # process an invite (accept, maybe, don't accept)
     #=======================
 
-    requests.post(f"{EVENT_SERVICE_URL}/update_invites", json={"event_id": eventId, "status": status, "username": username})
+    requests.post(f"{EVENT_SERVICE_URL}/" + str(username) + "/invites", json={"event_id": eventId, "status": status})
     if status != "Don't Participate":
         requests.post(f"{CALENDAR_SERVICE_URL}/add_event", json={"username": username, "event_id": eventId})
 

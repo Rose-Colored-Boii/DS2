@@ -39,7 +39,7 @@ def create_user_table():
     conn.commit()
 
 
-@app.route("/register", methods=["POST"])
+@app.route("/auth/register", methods=["POST"])
 def register():
     username = request.json["username"]
     password = request.json["password"]
@@ -54,7 +54,7 @@ def register():
         return jsonify({"message": "Username already exists"}), 400
 
 
-@app.route("/login", methods=["POST"])
+@app.route("/auth/login", methods=["POST"])
 def login():
     username = request.json["username"]
     password = request.json["password"]
