@@ -3,9 +3,9 @@ import requests
 
 app = Flask(__name__)
 
-AUTH_SERVICE_URL = "http://ds2-authentication-1:5001/auth"
-EVENT_SERVICE_URL = "http://ds2-event-management-1:5002/events"
-CALENDAR_SERVICE_URL = "http://ds2-calendar-1:5003/calendar"
+AUTH_SERVICE_URL = "http://authentication:5001/auth"
+EVENT_SERVICE_URL = "http://event-management:5002/events"
+CALENDAR_SERVICE_URL = "http://calendar:5003/calendar"
 
 # The Username & Password of the currently logged-in User, this is used as a pseudo-cookie, as such this is not session-specific.
 username = None
@@ -40,7 +40,7 @@ def home():
         # Try to keep in mind failure of the underlying microservice
         # =================================
         public_events = []
-        events = requests.get(f"{EVENT_SERVICE_URL}/events").json()["events"]
+        events = requests.get(f"{EVENT_SERVICE_URL}/").json()["events"]
         for event in events:
             public_events.append((event["title"], event["date"], event["organizer"]))
         return render_template('home.html', username=username, password=password, events=public_events)

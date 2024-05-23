@@ -1,5 +1,4 @@
 import time
-
 from flask import Flask, request, jsonify
 import psycopg2
 
@@ -29,14 +28,13 @@ while not conn:
 cursor = conn.cursor()
 
 
-def create_user_table():
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            username VARCHAR(255) PRIMARY KEY,
-            password VARCHAR(255) NOT NULL
-        )
-    """)
-    conn.commit()
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        username VARCHAR(255) PRIMARY KEY,
+        password VARCHAR(255) NOT NULL
+    )
+""")
+conn.commit()
 
 
 @app.route("/auth/register", methods=["POST"])
@@ -67,9 +65,3 @@ def login():
     else:
         conn.rollback()
         return jsonify({"message": "Invalid username or password"}), 400
-
-
-if __name__ == "__main__":
-    create_user_table()
-    app.run(host="0.0.0.0", port=5001)
-    conn.close()

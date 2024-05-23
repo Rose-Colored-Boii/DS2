@@ -13,7 +13,7 @@ services:
       - my_local_net
 
   authentication-db:
-    image: postgres:latest
+    image: docker.io/postgres:latest
     restart: always
     environment:
       POSTGRES_DB: authentication-db
@@ -35,7 +35,7 @@ services:
       - my_local_net
 
   event-management-db:
-    image: postgres:latest
+    image: docker.io/postgres:latest
     restart: always
     environment:
       POSTGRES_DB: event-management-db
@@ -57,7 +57,7 @@ services:
       - my_local_net
 
   calendar-db:
-    image: postgres:latest
+    image: docker.io/postgres:latest
     restart: always
     environment:
       POSTGRES_DB: calendar-db

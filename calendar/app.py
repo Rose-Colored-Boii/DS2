@@ -28,28 +28,23 @@ while not conn:
 
 cursor = conn.cursor()
 
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS calendars (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        event_id INT NOT NULL
+    )
+""")
+conn.commit()
 
-def create_calendar_table():
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS calendars (
-            id SERIAL PRIMARY KEY,
-            username VARCHAR(255) NOT NULL,
-            event_id INT NOT NULL
-        )
-    """)
-    conn.commit()
-
-
-def create_invites_table():
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS invites (
-            id SERIAL PRIMARY KEY,
-            username VARCHAR(255) NOT NULL,
-            invitee VARCHAR(255) NOT NULL
-        )
-    """)
-    conn.commit()
-
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS invites (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        invitee VARCHAR(255) NOT NULL
+    )
+""")
+conn.commit()
 
 @app.route("/calendar/<username>/invites", methods=["POST"])
 def invite(username):
@@ -101,10 +96,3 @@ def add_event(username):
     except:
         conn.rollback()
         return jsonify({"message": "Error occured adding event to calendar"}), 400
-
-
-if __name__ == "__main__":
-    create_calendar_table()
-    create_invites_table()
-    app.run(host="0.0.0.0", port=5003)
-    conn.close()

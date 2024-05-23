@@ -1,4 +1,4 @@
-FROM python:3.12-rc-slim-buster
+FROM docker.io/python:3.12-rc-slim-buster
 
 COPY requirements.txt requirements.txt
 
@@ -8,4 +8,4 @@ COPY app.py app.py
 
 EXPOSE 5002
 
-CMD [ "python", "app.py" ]
+CMD [ "python3", "-u", "-m" , "flask", "run", "--host=0.0.0.0", "--port=5002"]

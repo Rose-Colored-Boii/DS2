@@ -28,30 +28,27 @@ while not conn:
 
 cursor = conn.cursor()
 
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS events (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        date VARCHAR(255) NOT NULL,
+        organizer VARCHAR(255) NOT NULL,
+        privacy VARCHAR(255) NOT NULL,
+        description VARCHAR(255)
+    )
+""")
+conn.commit()
 
-def create_event_table():
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS events (
-            id SERIAL PRIMARY KEY,
-            title VARCHAR(255) NOT NULL,
-            date VARCHAR(255) NOT NULL,
-            organizer VARCHAR(255) NOT NULL,
-            privacy VARCHAR(255) NOT NULL,
-            description VARCHAR(255)
-        )
-    """)
-    conn.commit()
-
-def create_invites_table():
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS invites (
-            id SERIAL PRIMARY KEY,
-            event_id integer REFERENCES events,
-            username VARCHAR(255) NOT NULL,
-            status VARCHAR (255) NOT NULL
-        )
-    """)
-    conn.commit()
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS invites (
+        id SERIAL PRIMARY KEY,
+        event_id integer REFERENCES events,
+        username VARCHAR(255) NOT NULL,
+        status VARCHAR (255) NOT NULL
+    )
+""")
+conn.commit()
 
 
 @app.route("/events/<username>/<title>", methods=["POST"])
@@ -92,7 +89,7 @@ def get_events(event_id):
         return jsonify({"message": "Error occured fetching events"}), 400
 
 
-@app.route("/events", methods=["GET"])
+@app.route("/events/", methods=["GET"])
 def get_public_events():
     try:
         cursor.execute("SELECT * FROM events WHERE privacy = 'public'")
@@ -146,10 +143,3 @@ def update_invites(username):
     except:
         conn.rollback()
         return jsonify({"message": "Error while updating invites"}), 400
-
-
-if __name__ == "__main__":
-    create_event_table()
-    create_invites_table()
-    app.run(host="0.0.0.0", port=5002)
-    conn.close()
